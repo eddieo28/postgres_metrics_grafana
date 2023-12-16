@@ -1,0 +1,72 @@
+version: '3.8'
+services:
+  db:
+    image: postgres
+    restart: always
+    volumes:
+      - "./pgdata:/var/lib/postgresql/data/pgdata"
+      #On container start create execute sql script to create database called pasta
+      - "./sql/:/docker-entrypoint-initdb.d"
+    environment:
+      POSTGRES_DB: pasta
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrs123
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 160
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./provisioning:/etc/grafana/provisioning
+      - ./dashboards:/etc/grafana/dashboards #where our dashboard schema is stored
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter
+    ports:
+      - "9187:9187"
+    environment:
+      DATA_SOURCE_NAME: postgresql://postgres:postgrs123@db:5432/pasta?sslmode=disable
+    links:
+      - db
+      - prometheus
+    depends_on:
+      - db
+      - prometheus
+
+  kafka:
+      image: landoop/fast-data-dev:latest
+      environment:
+        ADV_HOST: 127.0.0.1         # Change to 192.168.99.100 if using Docker Toolbox
+        RUNTESTS: 0                 # Disable Running tests so the cluster starts faster
+        FORWARDLOGS: 0              # Disable running 5 file source connectors that bring application logs into Kafka topics
+        SAMPLEDATA: 0               # Do not create sea_vessel_position_reports, nyc_yellow_taxi_trip_data, reddit_posts topics with sample Avro records.
+      ports:
+        - 2181:2181                 # Zookeeper
+        - 3030:3030                 # Landoop UI
+        - 8081-8083:8081-8083       # REST Proxy, Schema Registry, Kafka Connect ports
+        - 9581-9585:9581-9585       # JMX Ports
+        - 9092:9092                 # Kafka Broker
+  
+
+volumes:
+  grafana-storage:
+    
+

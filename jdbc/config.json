@@ -1,0 +1,15 @@
+{
+    "name": "jdbc-connector",
+    "config": {
+        "connector.class": "io.confluent.connect.jdbc.JdbcSourceConnector",
+        "connection.url": "jdbc:postgresql://db:5432/pasta",
+        "connection.user":"postgres",
+        "connection.password": "postgrs123",
+        "topic.prefix": "jdbc",
+        "mode": "incrementing",
+        "incrementing.column.name": "id",
+        "table.whitelist": "pasta",
+        "tasks.max": "1",
+        "auto-create": "true"
+    }
+}
